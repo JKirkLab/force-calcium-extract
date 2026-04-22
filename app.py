@@ -97,6 +97,9 @@ if uploaded_files:
         ax2.legend()
         st.pyplot(fig2)
 
+        # st.write("p3 Index", p1['index'])
+        # st.write("p3 Index", p3['index'])
+
     if rows:
         combined_table = pd.DataFrame(rows, columns=["File", "Label", "Value"])
         st.dataframe(combined_table)

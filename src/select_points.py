@@ -88,9 +88,9 @@ def extract_4_points(
     idx_right_max_local = np.argmax(force_right)
 
     # Convert to global indices
-    idx_left_max = left_start_idx + idx_left_max_local
+    idx_left_max = 520#left_start_idx + idx_left_max_local
     idx_left_min = left_start_idx + idx_left_min_local
-    idx_right_min = right_start_idx + idx_right_min_local
+    idx_right_min = 100020#right_start_idx + idx_right_min_local
     idx_right_max = right_start_idx + idx_right_max_local
 
     result = {
