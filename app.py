@@ -29,16 +29,18 @@ uploaded_files = st.sidebar.file_uploader(
     accept_multiple_files=True
 )
 
+rows = []
+
 if uploaded_files:
     st.write("Uploaded files:")
     for file in uploaded_files:
         st.subheader(file.name)
 
         df, scale, offset = ex.extract_metadata(file)
-        result = sp.extract_4_points(df["Time_ms"], df["Aux2_mV"], frac=0.015)
+        result = sp.extract_4_points(df["Time_ms"], df["Aux2_mV"]/1000, frac=0.015)
 
         time = np.asarray(df["Time_ms"])
-        force = np.asarray(df["Aux2_mV"])
+        force = np.asarray(df["Aux2_mV"]/1000)
         force_smooth = result["smoothed_force"]
 
         p1 = result["p1"]
@@ -46,9 +48,11 @@ if uploaded_files:
         p3 = result["p3"]
         p4 = result["p4"]
 
-        pad = 100  # x padding
+        rows.append([file.name,p1['value'], p2['value']])
+        rows.append([file.name,p4['value'], p3['value']])
 
-        # Plot 1: p1 & p2
+        pad = 100  
+
         xmin1 = min(p1["time_ms"], p2["time_ms"]) - pad
         xmax1 = max(p1["time_ms"], p2["time_ms"]) + pad
 
@@ -102,3 +106,7 @@ if uploaded_files:
         )
 
         st.table(table_df)
+
+    if rows:
+        combined_table = pd.DataFrame(rows, columns=["File", "Label", "Value"])
+        st.dataframe(combined_table)
