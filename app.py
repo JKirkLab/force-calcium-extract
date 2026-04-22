@@ -37,10 +37,16 @@ if uploaded_files:
         st.subheader(file.name)
 
         df, scale, offset = ex.extract_metadata(file)
-        result = sp.extract_4_points(df["Time_ms"], df["Aux2_mV"]/1000, frac=0.015)
+
+        df['Voltage'] = df['Force'].apply(
+            lambda x: cv.convert_force_voltage(x, scale, offset)
+        )
+        result = sp.extract_4_points(df["Time_ms"], df['Voltage'], frac=0.015)
 
         time = np.asarray(df["Time_ms"])
-        force = np.asarray(df["Aux2_mV"]/1000)
+
+        force = np.asarray(df["Voltage"])
+        
         force_smooth = result["smoothed_force"]
 
         p1 = result["p1"]
@@ -90,22 +96,6 @@ if uploaded_files:
         ax2.set_title("Zoomed view: p3 and p4")
         ax2.legend()
         st.pyplot(fig2)
-
-        # st.write(
-        #     f"{file.name}: "
-        #     f"2.1: ({p1['value']}, {p4['value']}), "
-        #     f"slack: ({p2['value']}, {p3['value']})"
-        # )
-        table_df = pd.DataFrame(
-        [
-            [p1["value"], p2["value"]],  # top row
-            [p4["value"], p3["value"]]   # bottom row (p4 left, p3 right)
-        ],
-        index=["Top", "Bottom"],
-        columns=["Left", "Right"]
-        )
-
-        st.table(table_df)
 
     if rows:
         combined_table = pd.DataFrame(rows, columns=["File", "Label", "Value"])

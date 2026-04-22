@@ -1,26 +1,23 @@
 import pandas as pd
-def extract_metadata(file):
-    colnames = [
-        "Time_ms","Lin_mm","Lout_mm","Fin_mN","Fout_mN",
-        "Aux1_C","Aux2_mV","SL_um","Stimulus_Triggers",
-    ]
 
+def extract_metadata(file):
     rows = []
     in_section = False
-
     scale = None
     offset = None
+    FORCE_IDX = 3
 
-    # read uploaded file as text
     for line in file:
-        line = line.decode("utf-8")  # convert bytes → string
+        line = line.decode("utf-8", errors="ignore")
+        s = line.strip()
 
         if line.startswith("406A"):
-            test_list = line.split()
-            scale = float(test_list[-1])
-            offset = float(test_list[-2])
-
-        s = line.strip()
+            parts = line.split()
+            try:
+                scale = float(parts[-1])
+                offset = float(parts[-2])
+            except (ValueError, IndexError):
+                pass
 
         if s == "*** Force and Length Signals vs Time ***":
             in_section = True
@@ -29,20 +26,18 @@ def extract_metadata(file):
         if not in_section:
             continue
 
-        if not s or s.startswith("Time (ms)"):
+        if not s:
             continue
 
         parts = s.split()
 
-        if len(parts) != 9:
-            continue
-
         try:
-            row = [float(x) for x in parts[:8]] + [int(parts[8])]
-            rows.append(row)
+            if len(parts) > FORCE_IDX:
+                time_ms = float(parts[0])
+                force = float(parts[FORCE_IDX])
+                rows.append([time_ms, force])
         except ValueError:
             continue
 
-    df = pd.DataFrame(rows, columns=colnames)
-
+    df = pd.DataFrame(rows, columns=["Time_ms", "Force"])
     return df, scale, offset
