@@ -39,14 +39,14 @@ fin_scale = st.number_input(
 
 
 height = st.number_input(
-    "Height",
+    "Height (μm)",
     value=0.0,
     step=0.01,
     format="%.6f"
 )
 
 width = st.number_input(
-    "Width",
+    "Width (μm)",
     value=0.0,
     step=0.01,
     format="%.6f"
@@ -136,7 +136,7 @@ if uploaded_files and height and width:
 
         force_df, csa = generate_force(af_v, cell_nums, height, width, fin_scale)
 
-        st.write("CSA: ", csa )
+        st.write("CSA (mm^2): ", csa )
 
         st.dataframe(voltage_df, hide_index = True, height=38 + 35 * len(voltage_df))
         st.dataframe(force_df,  hide_index = True, height=38 + 35 * len(force_df))

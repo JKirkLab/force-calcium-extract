@@ -54,6 +54,8 @@ def generate_output(rows):
 
     output.loc[output.index[-1], "Group"] = (af_v[0] - af_v[-1]) / af_v[0]
     output = output.drop(columns = "filename")
+
+    output = output[["cell #", "2.1μm", "Slack", "DF (V)", "AF (V)", "Group"]]
     return output, af_v, cell_numbers
 
 def generate_force(af_voltage, cell_nums, height, width, fin_scale):
@@ -67,5 +69,5 @@ def generate_force(af_voltage, cell_nums, height, width, fin_scale):
 
     force_df["F (mN)"] = force_df["Volts"] * fin_scale
     force_df["F (mN/mm2)"] = force_df["F (mN)"] / csa
-    
+
     return force_df, csa
