@@ -31,7 +31,7 @@ uploaded_files = st.sidebar.file_uploader(
 )
 
 fin_scale = st.number_input(
-    "Force In Scale",
+    "Force In Scale (mN/V)",
     value=0.0,
     step=0.01,
     format="%.6f"
@@ -137,7 +137,7 @@ if uploaded_files and height and width:
         force_df, csa = generate_force(af_v, cell_nums, height, width, fin_scale)
 
         st.write("CSA (mm^2): ", csa )
-        
+
         st.dataframe(voltage_df, hide_index = True, column_order=["cell #", "2.1μm", "Slack", "DF (V)", "AF (V)", "Group"], height=38 + 35 * len(voltage_df))
         st.dataframe(force_df,  hide_index = True, height=38 + 35 * len(force_df))
 
