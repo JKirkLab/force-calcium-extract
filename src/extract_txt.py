@@ -35,9 +35,10 @@ def extract_metadata(file):
             if len(parts) > FORCE_IDX:
                 time_ms = float(parts[0])
                 force = float(parts[FORCE_IDX])
-                rows.append([time_ms, force])
+                lout = float(parts[2])
+                rows.append([time_ms, force, lout])
         except ValueError:
             continue
 
-    df = pd.DataFrame(rows, columns=["Time_ms", "Force"])
+    df = pd.DataFrame(rows, columns=["Time_ms", "Force", "Lout"])
     return df, scale, offset

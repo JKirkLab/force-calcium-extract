@@ -1,2 +1,7 @@
 __pycache__/
 *.pyc
+example_data/
+example_output/
+generated_outputs/
+generate_outputs.py
+.DS_Store

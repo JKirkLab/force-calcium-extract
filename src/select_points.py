@@ -132,3 +132,91 @@ def extract_4_points(
     }
 
     return result
+
+
+def extract_p3_p4(time, force, lout, window=50):
+    """
+    Extract all four points using the Lout (commanded length) signal.
+
+    p1 = mean of `window` force points immediately before the upward ramp onset
+    p2 = mean of `window` force points immediately after the upward ramp ends
+    p3 = mean of `window` force points immediately before the downward ramp onset
+    p4 = mean of `window` force points immediately after the downward ramp ends
+
+    Anchors are derived from Lout (commanded length output), which is
+    noise-free, so no smoothing is needed.
+    """
+    time = np.asarray(time)
+    force = np.asarray(force)
+    lout = np.asarray(lout)
+
+    plateau_val = np.max(lout)
+    slack_val = np.min(lout)
+    epsilon = 1e-6
+    indices = np.arange(len(lout))
+
+    # --- Downward ramp (p3/p4) ---
+    # Last index where Lout is at the plateau → downward ramp onset is the next index
+    plateau_indices = np.where(lout >= plateau_val - epsilon)[0]
+    t_onset = int(plateau_indices[-1]) + 1
+
+    # First index at slack level AFTER t_onset → downward ramp end
+    post_onset_slack = np.where((lout <= slack_val + epsilon) & (indices >= t_onset))[0]
+    t_end = int(post_onset_slack[0])
+
+    # p3: window immediately before downward ramp onset
+    p3_start = max(0, t_onset - window)
+    p3_end = t_onset
+    p3_center = (p3_start + p3_end) // 2
+    p3_val = float(np.mean(force[p3_start:p3_end]))
+
+    # p4: window immediately after downward ramp end
+    p4_start = t_end
+    p4_end = min(len(force), t_end + window)
+    p4_center = (p4_start + p4_end) // 2
+    p4_val = float(np.mean(force[p4_start:p4_end]))
+
+    # --- Upward ramp (p1/p2) ---
+    # First index where Lout rises above its initial slack value
+    init_lout = float(lout[0])
+    up_onset_candidates = np.where(lout > init_lout + epsilon)[0]
+    up_onset = int(up_onset_candidates[0]) if len(up_onset_candidates) > 0 else window
+
+    # First index where Lout reaches the plateau after the upward ramp
+    up_end_candidates = np.where((lout >= plateau_val - epsilon) & (indices >= up_onset))[0]
+    up_end = int(up_end_candidates[0]) if len(up_end_candidates) > 0 else t_onset
+
+    # p1: window immediately before upward ramp onset
+    p1_start = max(0, up_onset - window)
+    p1_end = up_onset
+    p1_center = (p1_start + p1_end) // 2
+    p1_val = float(np.mean(force[p1_start:p1_end]))
+
+    # p2: window immediately after upward ramp end
+    p2_start = up_end
+    p2_end = min(len(force), up_end + window)
+    p2_center = (p2_start + p2_end) // 2
+    p2_val = float(np.mean(force[p2_start:p2_end]))
+
+    return {
+        "p1": {
+            "index": int(p1_center),
+            "time_ms": float(time[p1_center]),
+            "value": p1_val,
+        },
+        "p2": {
+            "index": int(p2_center),
+            "time_ms": float(time[p2_center]),
+            "value": p2_val,
+        },
+        "p3": {
+            "index": int(p3_center),
+            "time_ms": float(time[p3_center]),
+            "value": p3_val,
+        },
+        "p4": {
+            "index": int(p4_center),
+            "time_ms": float(time[p4_center]),
+            "value": p4_val,
+        },
+    }

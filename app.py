@@ -70,17 +70,20 @@ if uploaded_files and height and width:
                 lambda x: cv.convert_force_voltage(x, scale, offset)
             )
             result = sp.extract_4_points(df["Time_ms"], df['Voltage'], frac=0.015)
+            p3p4 = sp.extract_p3_p4(df["Time_ms"], df['Voltage'], df['Lout'])
 
             time = np.asarray(df["Time_ms"])
 
             force = np.asarray(df["Voltage"])
-            
+
             force_smooth = result["smoothed_force"]
 
-            p1 = result["p1"]
-            p2 = result["p2"]
-            p3 = result["p3"]
-            p4 = result["p4"]
+            # p1 = result["p1"]  # old: hard-coded index 520
+            # p2 = result["p2"]  # old: argmin in left edge region
+            p1 = p3p4["p1"]
+            p2 = p3p4["p2"]
+            p3 = p3p4["p3"]
+            p4 = p3p4["p4"]
 
             rows.append([file.name + "_contract",p1['value'], p2['value']])
             rows.append([file.name + "_relax",p4['value'], p3['value']])
