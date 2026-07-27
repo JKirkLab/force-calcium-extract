@@ -20,63 +20,10 @@ def set_padded_ylim(ax, time, y, xmin, xmax, pad_frac=0.05):
     pad = yrange * pad_frac if yrange > 0 else 1.0
     ax.set_ylim(ymin - pad, ymax + pad)
 
-st.title("Force Calcium Data Extractor")
-st.write("Upload your data here")
-
-st.sidebar.header("Upload:")
-
-if "uploader_key" not in st.session_state:
-    st.session_state.uploader_key = 0
-
-
-uploaded_files = st.sidebar.file_uploader(
-    "Choose one or more files",
-    accept_multiple_files=True
-)
-
-folder_upload = st.sidebar.file_uploader(
-    "Upload full folders here",
-    accept_multiple_files = "directory",
-    key=f"folder_uploader_{st.session_state.uploader_key}",
-)
-
-if st.sidebar.button("Clear uploaded folder"):
-    st.session_state.uploader_key += 1
-    st.rerun()
-
-if uploaded_files:
-    st.write(f"{len(uploaded_files)} files uploaded")
-
-fin_scale = st.number_input(
-    "Force In Scale (mN/V)",
-    value=0.0,
-    step=0.01,
-    format="%.6f"
-)
-
-
-height = st.number_input(
-    "Height (μm)",
-    value=0.0,
-    step=0.01,
-    format="%.6f"
-)
-
-width = st.number_input(
-    "Width (μm)",
-    value=0.0,
-    step=0.01,
-    format="%.6f"
-)
-
-
-
 def process_group(group_files, height, width, fin_scale):
     rows = []
     for file in group_files:
         basename = file.name.replace("\\", "/").split("/")[-1]
-        # st.write(f"DEBUG: processing file {i+1}/{len(group_files)}: {basename}")
-        # st.subheader(basename)
 
         df, scale, offset = ex.extract_metadata(file)
 
@@ -141,53 +88,117 @@ def process_group(group_files, height, width, fin_scale):
         st.dataframe(voltage_df, hide_index=True, column_order=["cell #", "2.1μm", "Slack", "DF (V)", "AF (V)", "Group"], height=38 + 35 * len(voltage_df))
         st.dataframe(force_df, hide_index=True, height=38 + 35 * len(force_df))
 
+st.title("Force Calcium Data Extractor")
+st.write("Upload your data here")
 
-if uploaded_files:
-    if not height or not width:
-        st.warning("Please enter Height and Width to process files.")
-    else:
-        with st.spinner("Processing files..."):
-            st.write("Uploaded files:")
-            with st.expander("Show plots"):
-                process_group(uploaded_files, height, width, fin_scale)
+single_upload, batch_upload = st.tabs(['Individual Upload', 'Batch Upload'])
 
-elif folder_upload:
-    if not height or not width:
-        st.warning("Please enter Height and Width to process files.")
-    else:
-        # st.write("DEBUG: all uploaded filenames:", [f.name for f in folder_upload])
 
-        txt_files = [f for f in folder_upload if not f.name.replace("\\", "/").split("/")[-1].startswith(".")]
 
-        # st.write(f"DEBUG: {len(folder_upload)} total files uploaded, {len(txt_files)} data files")
+with single_upload:
+    uploaded_files = st.file_uploader(
+        "Choose one or more files",
+        accept_multiple_files=True
+    )
+    if uploaded_files:
+        st.write(f"{len(uploaded_files)} files uploaded")
 
-        # Browser directory uploads include the root folder in the path:
-        # root/subfolder/file.txt (depth 3) → group by parts[1]
-        # root/file.txt           (depth 2) → single flat group
-        max_depth = max((len(f.name.replace("\\", "/").split("/")) for f in txt_files), default=1)
-        # st.write(f"DEBUG: max path depth = {max_depth}")
+    
+    fin_scale = st.number_input(
+        "Force In Scale (mN/V)",
+        min_value = 0.0,
+        value=0.0,
+        step=0.001,
+        format="%.6f"
+    )
+    height = st.number_input(
+        "Height (μm)",
+        value=0.0,
+        step=0.01,
+        format="%.6f"
+    )
+    width = st.number_input(
+        "Width (μm)",
+        value=0.0,
+        step=0.01,
+        format="%.6f"
+    )
 
-        if max_depth >= 3:
-            groups = {}
-            for f in txt_files:
-                parts = f.name.replace("\\", "/").split("/")
-                key = parts[1]
-                groups.setdefault(key, []).append(f)
-
-            # st.write(f"DEBUG: {len(groups)} subfolders found: {list(groups.keys())}")
-
-            for group_name, group_files in groups.items():
-                st.header(f"Folder: {group_name}")
-                # st.write(f"DEBUG: {len(group_files)} files in this folder")
-                with st.spinner(f"Processing {group_name}..."):
-                    with st.expander("Show plots"):
-                        process_group(group_files, height, width, fin_scale)
+    if uploaded_files:
+        if not height or not width:
+            st.warning("Please enter Height and Width to process files.")
         else:
-            # st.write(f"DEBUG: flat folder, processing {len(txt_files)} files as one group")
             with st.spinner("Processing files..."):
                 st.write("Uploaded files:")
                 with st.expander("Show plots"):
-                    process_group(txt_files, height, width, fin_scale)
+                    process_group(uploaded_files, height, width, fin_scale)
+
+with batch_upload:
+    if "uploader_key" not in st.session_state:
+        st.session_state.uploader_key = 0
+
+    folder_upload = st.file_uploader(
+        "Upload full folders here",
+        accept_multiple_files = "directory",
+        key=f"folder_uploader_{st.session_state.uploader_key}",
+    )
+
+    metadata = st.file_uploader(
+        "Upload your metadata sheet here",
+        type = ["xlsx"]
+    )
+
+    if st.button("Clear uploaded folder"):
+        st.session_state.uploader_key += 1
+        st.rerun()
+
+    if folder_upload:
+        if not metadata:
+            st.warning("Please upload the metadata key.")
+        else:
+            # st.write("DEBUG: all uploaded filenames:", [f.name for f in folder_upload])
+
+            txt_files = [f for f in folder_upload if not f.name.replace("\\", "/").split("/")[-1].startswith(".")]
+
+            metadata_df = pd.read_excel(metadata)
+            # st.write(f"DEBUG: {len(folder_upload)} total files uploaded, {len(txt_files)} data files")
+
+            # Browser directory uploads include the root folder in the path:
+            # root/subfolder/file.txt (depth 3) → group by parts[1]
+            # root/file.txt           (depth 2) → single flat group
+            max_depth = max((len(f.name.replace("\\", "/").split("/")) for f in txt_files), default=1)
+            # st.write(f"DEBUG: max path depth = {max_depth}")
+
+            if max_depth >= 3:
+                groups = {}
+                for f in txt_files:
+                    parts = f.name.replace("\\", "/").split("/")
+                    key = parts[1]
+                    groups.setdefault(key, []).append(f)
+
+                st.write(f"DEBUG: {len(groups)} subfolders found: {list(groups.keys())}")
+
+                for group_name, group_files in groups.items():
+                    st.header(f"folder: {group_name}")
+                    #folder is guaranteed to be unique
+                    row = metadata_df[metadata_df['Folder'] == group_name]
+                    if row.empty:
+                        st.warning(f"No metadata found for folder '{group_name}' — skipping.")
+                        continue
+                    height = row['height'].iloc[0]
+                    width = row['width'].iloc[0]
+                    f_in_scale = row['scale'].iloc[0]
+                    # st.write(f"DEBUG: {len(group_files)} files in this folder")
+
+                    with st.spinner(f"Processing {group_name}..."):
+                        with st.expander("Show plots"):
+                            process_group(group_files, height, width, f_in_scale)
+            else:
+                # st.write(f"DEBUG: flat folder, processing {len(txt_files)} files as one group")
+                with st.spinner("Processing files..."):
+                    st.write("Uploaded files:")
+                    with st.expander("Show plots"):
+                        process_group(txt_files, height, width, fin_scale)
 
         
         
